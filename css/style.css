@@ -1,0 +1,115 @@
+/* add style to reduce space above and below table rows */
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+th, td {
+    border: 1px solid #ddd;
+    padding: 2px;
+}
+th {
+    background-color: #f2f2f2;
+}
+
+.highlight {
+    font-weight: bold;
+}
+
+.blockbreak {
+    margin-top: 20px;
+    padding: 5px;
+    margin-bottom: 20px;
+    background-color: red;
+}
+
+.tableContainer {
+    display: block;
+}
+
+.titleContainer {
+    display: flex;
+    padding: 15px 0 15px 0;
+    font-weight: bold;
+    font-size: larger;
+    justify-content: space-between;
+}
+
+.tableHeader {
+    background-color: #f2f2f2;
+    font-weight: bold;
+    font-size: larger;
+}
+
+.columnHeader {
+    background-color: #f2f2f2;
+    font-weight: bold;
+}
+
+/* Style for the logo */
+.logo-container {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.chs-logo {
+    max-width: 100px;
+    height: auto;
+    display: inline-block;
+}
+
+/* Ensure the logo is printed at the top of every page */
+@media print {
+
+    @page {
+        margin-top: 15px; /* Reserve space at the top of every page for the logo */
+    }
+
+    body {
+        margin: 0;
+    }
+
+    .logo-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100px; /* Adjust height to match the logo */
+        background-color: blue; /* Ensure a white background behind the logo */
+        text-align: center;
+        /* z-index: 1000; */
+    }
+
+    .logo-container img {
+        margin-top: 10px; /* Adjust margin to center the logo vertically */
+    }
+
+    /* .content { */
+        /* margin-top: 120px; Ensure content starts below the logo */
+    /* } */
+
+    .tableContainer {
+        page-break-inside: avoid;
+        /* padding-top: 150px; Ensure the table starts below the logo */
+    }
+
+    tr {
+        page-break-inside: avoid;
+        page-break-after: auto;
+    }
+
+    /* Force a page break after the entire table if needed */
+    .tableContainer + .tableContainer {
+        page-break-before: auto;
+    }
+
+    .tableContainer {
+        padding-top: 120px; /* Ensure the table starts below the logo */
+        background-color: blueviolet;
+    }
+
+    /* Hide elements with the class "dontprint" when printing */
+    .dontprint {
+        display: none;
+    }
+}
+
