@@ -1,7 +1,10 @@
 /* add style to reduce space above and below table rows */
+
 table {
     width: 100%;
     border-collapse: collapse;
+    font-family: Times New Roman, Times, serif;
+    /* font-family: Helvetica, Arial, Futura; */
 }
 th, td {
     border: 1px solid #ddd;
@@ -9,6 +12,16 @@ th, td {
 }
 th {
     background-color: #f2f2f2;
+}
+
+th.netOpen, th.seatsTaken, th.maxSeats, th.seatsOpen, th.waitlisted, th.location, td.netOpen, td.seatsTaken, td.maxSeats, td.seatsOpen, td.waitlisted, td.location {
+    min-width: 20px;
+    width: 8%;
+}
+
+th.location, td.location {
+    min-width: 100px;
+    width: 20%;
 }
 
 .highlight {
@@ -28,7 +41,7 @@ th {
 
 .titleContainer {
     display: flex;
-    padding: 15px 0 15px 0;
+    padding: 15px o 15px 0;
     font-weight: bold;
     font-size: larger;
     justify-content: space-between;
@@ -57,6 +70,15 @@ th {
     display: inline-block;
 }
 
+.headline {
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.netOpen, .seatsTaken, .maxSeats, .seatsOpen, .waitlisted, .location {
+    text-align: center;
+}
+
+
 /* Ensure the logo is printed at the top of every page */
 @media print {
 
@@ -83,13 +105,8 @@ th {
         margin-top: 10px; /* Adjust margin to center the logo vertically */
     }
 
-    /* .content { */
-        /* margin-top: 120px; Ensure content starts below the logo */
-    /* } */
-
     .tableContainer {
         page-break-inside: avoid;
-        /* padding-top: 150px; Ensure the table starts below the logo */
     }
 
     tr {
