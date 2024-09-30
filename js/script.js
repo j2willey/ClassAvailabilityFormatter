@@ -1,16 +1,63 @@
 document.addEventListener('DOMContentLoaded', function() {
+    const advancedOptionsToggle = document.getElementById('advancedOptionsToggle');
+
     const fileInput = document.getElementById('fileInput');
     const classTables = document.getElementById('classTables');
-
-    let classNum  = '';
-    let className = '';
-    let seatsTaken = '';
-    let seatsOpen = '';
-    let waitlisted = '';
-    let block     = '';
-    let location  = '';
-    let netOpen   = '';
+    let blocks = { 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] };
     let dateStamp = '';
+
+    // classMetadata object
+    const cm = {
+        classNum   : { reportSignature : ['Class #'],               dfCol : '', display : false, dpOrder : 0, dpVal : 'Class #'},
+        className  : { reportSignature : ['Class Name'],            dfCol : '', display : true,  dpOrder : 1, dpVal : 'Class Name'},
+        block      : { reportSignature : ['Period'],                dfCol : '', display : false, dpOrder : 2, dpVal : 'Block'},
+        location   : { reportSignature : ['Room'],                  dfCol : '', display : true,  dpOrder : 3, dpVal : 'Location'},
+        maxSeats   : { reportSignature : ['Max', 'Class', 'Size'],  dfCol : '', display : false, dpOrder : 4, dpVal : 'Max Spots'},
+        seatsTaken : { reportSignature : ['Nbr', 'Seats', 'Taken'], dfCol : '', display : true,  dpOrder : 5, dpVal : 'Spots Taken'},
+        seatsOpen  : { reportSignature : ['Nbr', 'Seats', 'Open'],  dfCol : '', display : true,  dpOrder : 6, dpVal : 'Open Spots'},
+        waitlisted : { reportSignature : ['Wait', 'List', 'Count'], dfCol : '', display : true,  dpOrder : 7, dpVal : 'Wait listed'},
+        netOpen    : { reportSignature : [],                        dfCol : '', display : true,  dpOrder : 8, dpVal : 'Net Open Spots'}
+    }
+
+    console.log("cm: ", cm);
+
+    // Show/Hide advanced options
+    advancedOptionsToggle.addEventListener('click', function() {
+        const advancedOptions = document.getElementById('advancedOptions');
+        advancedOptions.classList.add('dontprint');
+        if (advancedOptionsToggle.checked) {
+            advancedOptions.style.display = 'block';
+        } else {
+            advancedOptions.style.display = 'none';
+        }
+        advancedOptions.innerHTML = "";
+        for (const key in cm) {
+            const row = document.createElement('div');
+            row.classList.add('dontprint');
+            const label = document.createElement('label');
+            label.textContent = cm[key].dpVal;
+            const input = document.createElement('input');
+            input.type = 'checkbox';
+            input.id = key;
+            input.checked = cm[key].display;
+            row.appendChild(label);
+            row.appendChild(input);
+            advancedOptions.appendChild(row);
+        }
+        const className = document.getElementById('className');
+        className.disabled = true;
+
+    });
+
+    advancedOptions.addEventListener('click', function(event) {
+        console.log("Event target: ", event.target);
+        if (event.target.type === 'checkbox') {
+            const key = event.target.id;
+            cm[key].display = event.target.checked;
+            console.log("cm[key]: ", cm[key]);
+            displayTables(blocks);
+        }
+    });
 
 
     fileInput.addEventListener('change', function(event) {
@@ -41,7 +88,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             // set the dateStamp to the file's last modified date
             dateStamp = file.lastModifiedDate.toLocaleDateString();
-            console.log("dateStamp: ", dateStamp);
         }
     });
 
@@ -89,55 +135,48 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function consolodateClassInfo(df) {
-        classNum  = locateColumn(df, ['Class #']);
-        className = locateColumn(df, ['Class Name']);
-        block     = locateColumn(df, ['Period']);
-        location  = locateColumn(df, ['Room']);
-        maxSeats  = locateColumn(df, ['Max', 'Class', 'Size']);
-        seatsTaken = locateColumn(df, ['Nbr', 'Seats', 'Taken']);
-        seatsOpen = locateColumn(df, ['Nbr', 'Seats', 'Open']);
-        waitlisted = locateColumn(df, ['Wait', 'List', 'Count']);
+        cm.classNum.dfCol   = locateColumn(df, cm.classNum.reportSignature);
+        cm.className.dfCol  = locateColumn(df, cm.className.reportSignature);
+        cm.block.dfCol      = locateColumn(df, cm.block.reportSignature);
+        cm.location.dfCol   = locateColumn(df, cm.location.reportSignature);
+        cm.maxSeats.dfCol   = locateColumn(df, cm.maxSeats.reportSignature);
+        cm.seatsTaken.dfCol = locateColumn(df, cm.seatsTaken.reportSignature);
+        cm.seatsOpen.dfCol  = locateColumn(df, cm.seatsOpen.reportSignature);
+        cm.waitlisted.dfCol = locateColumn(df, cm.waitlisted.reportSignature);
 
-        console.log("classNum: ", classNum  )
-        console.log("className: ", className )
-        console.log("block: ", block     )
-        console.log("location: ", location  )
-        console.log("maxSeats: ", maxSeats  )
-        console.log("seatsTaken: ", seatsTaken)
-        console.log("seatsOpen: ", seatsOpen )
-        console.log("waitlisted: ", waitlisted)
+        // for each cm property, print the column index aka dfCol
+        Object.keys(cm).forEach(key => {
+            console.log(`df Column index for ${key}: ${cm[key].dfCol}`);
+        });
 
         // create a new array of objects from df,
         // include only rows where column[classNum] matches "CHSM.*"
-        // and include only columes block, className, seatsTaken, seatsOpen, waitlist, location,
-        // as object properties. and add a new property netOpen = seatsOpen - waitlisted
+        // and include only specified columns as object properties,
+        // and add a new property netOpen = seatsOpen - waitlisted
         // remove parentheses and all text between them from className
-        let blocks = { 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] };
+        blocks = { 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] };
         for (let i = 0; i < df.length; i++) {
-            console.log("i: ", i, "   line: ", df[i]);
-            if (df[i][classNum] && df[i][classNum].match(/CHSM.*/)) {
-            let cleanedClassName = df[i][className].replace(/\s*\(.*?\)\s*/g, ' ').trim();
-            // parse the block number from the block column, which is a string like "Block 1"
-            // and convert it to a number
-            let blockNumber = parseInt(df[i][block].match(/\d+/)[0], 10);
-            console.log("blockNumber: ", blockNumber, "className: ", cleanedClassName);
-            let c = {
-                block: df[i][block],
-                className: cleanedClassName,
-                seatsTaken: df[i][seatsTaken],
-                seatsOpen: df[i][seatsOpen],
-                waitlisted: df[i][waitlisted],
-                location: df[i][location],
-                netOpen: df[i][seatsOpen] - df[i][waitlisted]
-            };
-            blocks[blockNumber].push(c);
+            if (df[i][cm.classNum.dfCol] && df[i][cm.classNum.dfCol].match(/CHSM.*/)) {
+                let cleanedClassName = df[i][cm.className.dfCol].replace(/\s*\(.*?\)\s*/g, ' ').trim();
+                let blockNumber = parseInt(df[i][cm.block.dfCol].match(/\d+/)[0], 10);
+                let c = {
+                    classNum: df[i][cm.classNum.dfCol],
+                    block: df[i][cm.block.dfCol],
+                    className: cleanedClassName,
+                    maxSeats: df[i][cm.maxSeats.dfCol],
+                    seatsTaken: df[i][cm.seatsTaken.dfCol],
+                    seatsOpen: df[i][cm.seatsOpen.dfCol],
+                    waitlisted: df[i][cm.waitlisted.dfCol],
+                    location: df[i][cm.location.dfCol],
+                    netOpen: df[i][cm.seatsOpen.dfCol] - df[i][cm.waitlisted.dfCol]
+                };
+                blocks[blockNumber].push(c);
             }
         }
-        console.log(blocks);
+
         // sort classes for each block by netOpen, descending, then by className, ascending
-        // FIXME: this is not working
         for (let bn in blocks) {
-                blocks[bn].sort((a, b) => {
+            blocks[bn].sort((a, b) => {
                 if (a.netOpen > b.netOpen) {
                     return -1;
                 } else if (a.netOpen < b.netOpen) {
@@ -153,24 +192,31 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             })
         }
+        console.log(`blocks: ${blocks}`);
         return blocks;
     }
 
+    function getColumnNamesSortedByDpOrder(cm) {
+        return Object.keys(cm)
+            .sort((a, b) => cm[a].dpOrder - cm[b].dpOrder)
+            .map(key => key);
+    }
 
     function displayTable(block, classes) {
         const week = document.getElementById('weekSelect').value;
-        const tableContainer = document.createElement('div')
+        const tableContainer = document.createElement('div');
         tableContainer.classList.add('tableContainer');
 
         const titleContainer = document.createElement('div');
         titleContainer.classList.add('titleContainer');
-
+        titleContainer.classList.add("headline");
         const blockE = document.createElement('span');
         blockE.textContent = "Block " + block + "   ";
         const weekE = document.createElement('span');
         weekE.textContent = week;
         const dateE = document.createElement('span');
         dateE.textContent = "Updated: " + dateStamp;
+
         titleContainer.appendChild(blockE);
         titleContainer.appendChild(weekE);
         titleContainer.appendChild(dateE);
@@ -180,27 +226,32 @@ document.addEventListener('DOMContentLoaded', function() {
         const tableBody = document.createElement('tbody')
         table.appendChild(tableHeader);
         table.appendChild(tableBody);
-        const columns = [/*'block',*/ 'className', 'location', 'netOpen', 'seatsTaken', 'seatsOpen', 'waitlisted'];
+
+        //create a list of column names from the cm object, sorted by dpOrder
+        const columns = getColumnNamesSortedByDpOrder(cm);
 
         console.log(`displayTable  ${block}: ${classes.length}\n`);
         tableHeader.innerHTML = '';
 
         const tr = document.createElement('tr');
         for (const col of columns) {
-            const td = document.createElement('td');
-            td.textContent = col;
-            td.classList.add('columnHeader');
-            // tableHeader.appendChild(td);
-            tr.appendChild(td);
+            console.log(`displayTable inside  ${block}: ${col} ${cm[col]}\n`);
+            if(cm[col].display) {
+                const td = document.createElement('td');
+                td.textContent = cm[col].dpVal;
+                td.classList.add('columnHeader');
+                td.classList.add(col);
+                tr.appendChild(td);
+            }
         }
-        // tableHeader.appendChild(ttitle);
+        tableHeader.classList.add('headline');
         tableHeader.appendChild(tr);
         tableBody.innerHTML = '';
 
         if (classes.length > 0) {
             console.log(`displayTable inside  ${block}\n`);
             for (let i = 1; i < classes.length; i++) {
-                console.log(classes['className']);
+                console.log(`classes['className'] ${classes['className']}`);
                 const row = classes[i];
                 const tr = document.createElement('tr');
                 if (row.netOpen > 0) {
@@ -208,9 +259,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
 
                 columns.forEach(col => {
-                    const td = document.createElement('td');
-                    td.textContent = row[col];
-                    tr.appendChild(td);
+                    if(cm[col].display) {
+                        const td = document.createElement('td');
+                        td.classList.add(col);
+                        td.textContent = row[col];
+                        tr.appendChild(td);
+                    }
                 });
                 tableBody.appendChild(tr);
             }
@@ -224,12 +278,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
     }
 
-    function csvToTable(text) {
-        let df = CSVtoArray(text);
-        let blocks = consolodateClassInfo(df);
+    function displayTables(blocks) {
+        classTables.innerHTML = '';
         for (let block in blocks) {
             displayTable(block, blocks[block]);
         }
+    }
+
+    function csvToTable(text) {
+        let df = CSVtoArray(text);
+        let blocks = consolodateClassInfo(df);
+        displayTables(blocks);
     }
 
 });
